@@ -1,0 +1,5 @@
+time="2024-09-14T22:48:22+05:00" level=info msg="Configuration loaded"
+time="2024-09-14T22:48:22+05:00" level=info msg="Connected to Postgresql"
+time="2024-09-14T22:48:22+05:00" level=info msg="User-service listening on :8001"
+time="2024-09-14T22:48:33+05:00" level=info msg="Received signal: interrupt"
+time="2024-09-14T22:48:38+05:00" level=info msg="Graceful shutdown complete."
