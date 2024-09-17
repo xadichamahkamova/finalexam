@@ -30,6 +30,25 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow
 	return i, err
 }
 
+const getUserByUserName = `-- name: GetUserByUserName :one
+SELECT id, email, password
+FROM users
+WHERE user_name = $1
+`
+
+type GetUserByUserNameRow struct {
+	ID       uuid.UUID
+	Email    string
+	Password string
+}
+
+func (q *Queries) GetUserByUserName(ctx context.Context, userName string) (GetUserByUserNameRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUserName, userName)
+	var i GetUserByUserNameRow
+	err := row.Scan(&i.ID, &i.Email, &i.Password)
+	return i, err
+}
+
 const getUsersList = `-- name: GetUsersList :many
 SELECT id, user_name, email
 FROM users
@@ -62,29 +81,6 @@ func (q *Queries) GetUsersList(ctx context.Context) ([]GetUsersListRow, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const loginUser = `-- name: LoginUser :one
-SELECT id, email 
-FROM users 
-WHERE user_name=$1 AND password=$2
-`
-
-type LoginUserParams struct {
-	UserName string
-	Password string
-}
-
-type LoginUserRow struct {
-	ID    uuid.UUID
-	Email string
-}
-
-func (q *Queries) LoginUser(ctx context.Context, arg LoginUserParams) (LoginUserRow, error) {
-	row := q.db.QueryRowContext(ctx, loginUser, arg.UserName, arg.Password)
-	var i LoginUserRow
-	err := row.Scan(&i.ID, &i.Email)
-	return i, err
 }
 
 const registerUser = `-- name: RegisterUser :one
