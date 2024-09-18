@@ -27,6 +27,13 @@ func (h *HandlerST) CreateBudget(c *gin.Context) {
 		return
 	}
 
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user id"})
+		return
+	}
+	req.UserId = id.(string)
+
 	resp, err := h.Service.CreateBudget(ctx, &req)
 	if err != nil {
 		logger.Error("CreateBudget: Service error - ", err)
@@ -49,7 +56,16 @@ func (h *HandlerST) CreateBudget(c *gin.Context) {
 // @Failure 500 {object} string
 func (h *HandlerST) GetListBudget(c *gin.Context) {
 
-	resp, err := h.Service.GetListBudget(ctx, &pb.GetListBudgetRequest{})
+	req := pb.GetListBudgetRequest{}
+
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user id"})
+		return
+	}
+	req.UserId = id.(string)
+
+	resp, err := h.Service.GetListBudget(ctx, &req)
 	if err != nil {
 		logger.Error("GetListBudget: Service error - ", err)
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -80,6 +96,13 @@ func (h *HandlerST) UpdateBudget(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
+	
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user id"})
+		return
+	}
+	req.UserId = id.(string)
 
 	resp, err := h.Service.UpdateBudget(ctx, &req)
 	if err != nil {

@@ -7,7 +7,9 @@ service ReportingService {
     rpc GetReportsSpendingByCategory(GetReportsByCategoryRequest) returns (GetReportsByCategoryResponse);
 }
 
-message GetTotalReportsRequest {}
+message GetTotalReportsRequest {
+    string user_id = 1;  
+}
 
 message GetTotalReportsResponse {
     int64 total_income = 1;
@@ -15,7 +17,9 @@ message GetTotalReportsResponse {
     int64 net_savings = 3;
 }
 
-message GetReportsByCategoryRequest {}
+message GetReportsByCategoryRequest {
+    string user_id = 1; 
+}
 
 message SpendingByCategory {
     string category = 1;

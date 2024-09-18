@@ -9,6 +9,9 @@ gen-proto:
 
 DB_URL=postgres://postgres:1@localhost:5432/postgres?sslmode=disable
 
+mig-create:
+	@migrate create -ext sql -dir migrations -seq create_transactions_table
+
 migrate-up:
 	@migrate -path ./db/migrations -database $(DB_URL) up
 

@@ -7,6 +7,8 @@ package storage
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const getReportsSpendingByCategory = `-- name: GetReportsSpendingByCategory :many
@@ -17,6 +19,8 @@ FROM
     transactions t
 JOIN
     categories c ON t.category_id = c.id
+WHERE
+    t.user_id = $1
 GROUP BY
     c.name
 `
@@ -26,8 +30,8 @@ type GetReportsSpendingByCategoryRow struct {
 	Totalspent int64
 }
 
-func (q *Queries) GetReportsSpendingByCategory(ctx context.Context) ([]GetReportsSpendingByCategoryRow, error) {
-	rows, err := q.db.QueryContext(ctx, getReportsSpendingByCategory)
+func (q *Queries) GetReportsSpendingByCategory(ctx context.Context, userID uuid.UUID) ([]GetReportsSpendingByCategoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getReportsSpendingByCategory, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +61,8 @@ SELECT
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount END), 0))::BIGINT AS net_savings
 FROM
     transactions
+WHERE
+    user_id = $1
 `
 
 type GetTotalReportsRow struct {
@@ -65,8 +71,8 @@ type GetTotalReportsRow struct {
 	NetSavings    int64
 }
 
-func (q *Queries) GetTotalReports(ctx context.Context) (GetTotalReportsRow, error) {
-	row := q.db.QueryRowContext(ctx, getTotalReports)
+func (q *Queries) GetTotalReports(ctx context.Context, userID uuid.UUID) (GetTotalReportsRow, error) {
+	row := q.db.QueryRowContext(ctx, getTotalReports, userID)
 	var i GetTotalReportsRow
 	err := row.Scan(&i.TotalIncome, &i.TotalExpenses, &i.NetSavings)
 	return i, err

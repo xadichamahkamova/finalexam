@@ -9,6 +9,10 @@ file:
   cert: ./tls/cert.pem
   key: ./tls/key.pem
 
+redis:
+  host: localhost
+  port: 6379
+  
 services:
   user-service:
     host: localhost

@@ -54,6 +54,15 @@ func (ns NullTransactionType) Value() (driver.Value, error) {
 	return string(ns.TransactionType), nil
 }
 
+type Budget struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	CategoryID uuid.NullUUID
+	Amount     int64
+	Spent      sql.NullInt64
+	Currency   string
+}
+
 type Category struct {
 	ID   uuid.UUID
 	Name string
@@ -61,6 +70,7 @@ type Category struct {
 
 type Transaction struct {
 	ID         uuid.UUID
+	UserID     uuid.UUID
 	Type       TransactionType
 	Amount     int64
 	Currency   string

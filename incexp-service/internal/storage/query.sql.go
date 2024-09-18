@@ -23,6 +23,7 @@ SELECT
 FROM transactions AS t
 INNER JOIN categories AS c 
 ON t.category_id = c.id
+WHERE t.user_id = $1
 ORDER BY t.date DESC
 `
 
@@ -35,8 +36,8 @@ type GetListIncomeVSExpenseRow struct {
 	Date     sql.NullTime
 }
 
-func (q *Queries) GetListIncomeVSExpense(ctx context.Context) ([]GetListIncomeVSExpenseRow, error) {
-	rows, err := q.db.QueryContext(ctx, getListIncomeVSExpense)
+func (q *Queries) GetListIncomeVSExpense(ctx context.Context, userID uuid.UUID) ([]GetListIncomeVSExpenseRow, error) {
+	rows, err := q.db.QueryContext(ctx, getListIncomeVSExpense, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +67,13 @@ func (q *Queries) GetListIncomeVSExpense(ctx context.Context) ([]GetListIncomeVS
 }
 
 const registerExpense = `-- name: RegisterExpense :one
-INSERT INTO transactions(type, amount, currency, category_id)
-VALUES($1, $2, $3, $4)
+INSERT INTO transactions(user_id, type, amount, currency, category_id)
+VALUES($1, $2, $3, $4, $5)
 RETURNING id
 `
 
 type RegisterExpenseParams struct {
+	UserID     uuid.UUID
 	Type       TransactionType
 	Amount     int64
 	Currency   string
@@ -80,6 +82,7 @@ type RegisterExpenseParams struct {
 
 func (q *Queries) RegisterExpense(ctx context.Context, arg RegisterExpenseParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, registerExpense,
+		arg.UserID,
 		arg.Type,
 		arg.Amount,
 		arg.Currency,
@@ -91,12 +94,13 @@ func (q *Queries) RegisterExpense(ctx context.Context, arg RegisterExpenseParams
 }
 
 const registerIncome = `-- name: RegisterIncome :one
-INSERT INTO transactions(type, amount, currency, category_id)
-VALUES($1, $2, $3, $4)
+INSERT INTO transactions(user_id, type, amount, currency, category_id)
+VALUES($1, $2, $3, $4, $5)
 RETURNING id
 `
 
 type RegisterIncomeParams struct {
+	UserID     uuid.UUID
 	Type       TransactionType
 	Amount     int64
 	Currency   string
@@ -105,6 +109,7 @@ type RegisterIncomeParams struct {
 
 func (q *Queries) RegisterIncome(ctx context.Context, arg RegisterIncomeParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, registerIncome,
+		arg.UserID,
 		arg.Type,
 		arg.Amount,
 		arg.Currency,

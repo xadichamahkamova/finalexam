@@ -4,6 +4,7 @@ import (
 	api "api-gateway/internal/https"
 	config "api-gateway/internal/pkg/load"
 	_ "api-gateway/docs"
+	rds "api-gateway/internal/pkg/redis"
 
 	userService "api-gateway/internal/pkg/user-service"
 	incexpService "api-gateway/internal/pkg/incexp-service"
@@ -28,6 +29,12 @@ func main() {
 		logger.Fatal("Failed to load configuration:", err)
 	}
 	logger.Info("Configuration loaded successfully")
+
+	redis, err := rds.NewClient(*cfg)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Info("Redis connected")
 
 	conn1, err := userService.DialWithUserService(*cfg)
 	if err != nil {
@@ -56,7 +63,7 @@ func main() {
 	clientService := service.NewServiceRepositoryClient(conn1, conn2, conn3, conn4)
 	logger.Info("Service clients initialized")
 
-	srv := api.NewGin(clientService)
+	srv := api.NewGin(clientService, redis)
 	addr := fmt.Sprintf(":%s", cfg.ApiGateway.Port)
 
 	sigChan := make(chan os.Signal, 1)

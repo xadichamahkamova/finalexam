@@ -1,12 +1,15 @@
 package https
 
 import (
+	"api-gateway/internal/cache"
 	"api-gateway/internal/https/handler"
-	auth "api-gateway/internal/https/middleware/authorization"
+	"api-gateway/internal/https/middleware/authorization"
 	rlimit "api-gateway/internal/https/middleware/rate-limiting"
 	"api-gateway/internal/service"
 	"crypto/tls"
 	"net/http"
+
+	rds "api-gateway/internal/pkg/redis"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -21,15 +24,21 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-func NewGin(service *service.ServiceRepositoryClient) *http.Server {
+func NewGin(service *service.ServiceRepositoryClient, redis *rds.Redis) *http.Server {
 
 	r := gin.Default()
 
 	apiHandler := handler.NewApiHandler(service)
-	
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	r.Use(auth.MiddleWare())
+	redisCache := cache.NewRedis(redis)
+
+	authMiddleware := &authorization.AuthMiddleware{
+		Cache: redisCache,
+	}
+
+	r.Use(authMiddleware.MiddleWare())
 	r.Use(rlimit.RateLimit())
 
 	api := r.Group("/api/v1")

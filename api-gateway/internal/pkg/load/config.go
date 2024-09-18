@@ -13,6 +13,7 @@ type Config struct {
 	IncExpService    ServiceConfig
 	ReportingService ServiceConfig
 	BudgetService    ServiceConfig
+	Redis            ServiceConfig
 	TokenKey         string
 	CertFile         string
 	KeyFile          string
@@ -50,8 +51,13 @@ func Load(path string) (*Config, error) {
 			Port: viper.GetString("services.budget-service.port"),
 		},
 
-		TokenKey: viper.GetString("token.key"),
+		Redis: ServiceConfig{
+			Host: viper.GetString("redis.host"),
+			Port: viper.GetString("redis.port"),
+		},
 		
+		TokenKey: viper.GetString("token.key"),
+
 		CertFile: viper.GetString("file.cert"),
 		KeyFile:  viper.GetString("file.key"),
 	}
