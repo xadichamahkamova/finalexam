@@ -18,8 +18,16 @@ import (
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 func (h *HandlerST) GetTotalReports(c *gin.Context) {
-
-	resp, err := h.Service.GetTotalReports(ctx, &pb.GetTotalReportsRequest{})
+	
+	req := pb.GetTotalReportsRequest{}
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user id"})
+		return
+	}
+	req.UserId = id.(string)
+	
+	resp, err := h.Service.GetTotalReports(ctx, &req)
 	if err != nil {
 		logger.Error("GetTotalReports: Service error - ", err)
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -41,7 +49,15 @@ func (h *HandlerST) GetTotalReports(c *gin.Context) {
 // @Failure 500 {object} string
 func (h *HandlerST) GetReportsByCategory(c *gin.Context) {
 
-	resp, err := h.Service.GetReportsSpendingByCategory(ctx, &pb.GetReportsByCategoryRequest{})
+	req := pb.GetReportsByCategoryRequest{}
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user id"})
+		return
+	}
+	req.UserId = id.(string)
+	
+	resp, err := h.Service.GetReportsSpendingByCategory(ctx, &req)
 	if err != nil {
 		logger.Error("GetReportsByCategory: Service error - ", err)
 		c.JSON(500, gin.H{"error": err.Error()})

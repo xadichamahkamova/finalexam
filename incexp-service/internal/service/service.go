@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	pb "incexp-service/genproto/incexpb"
+	"incexp-service/internal/service/helper"
 	"incexp-service/internal/storage"
 	"incexp-service/logger"
 
@@ -22,15 +23,20 @@ func NewIncExpService(repo *storage.Queries) *IncExpService {
 
 func (s *IncExpService) RegisterIncome(ctx context.Context, req *pb.RegisterIncomeRequest) (*pb.RegisterIncomeResponse, error) {
 
-	categoryId, err := uuid.Parse(req.CategoryId)
+	userId, err := helper.ParseUUID(req.UserId)
 	if err != nil {
-		logger.Error("RegisterIncome: Error parsing category ID - ", err)
 		return nil, err
 	}
+	logger.Info("RegisterIncome: User ID parsed - ", userId)
 
+	categoryId, err := helper.ParseUUID(req.CategoryId)
+	if err != nil {
+		return nil, err
+	}
 	logger.Info("RegisterIncome: Category ID parsed - ", categoryId)
 
 	income := storage.RegisterIncomeParams{
+		UserID:     userId,
 		Type:       "income",
 		Amount:     req.Amount,
 		Currency:   req.Currency,
@@ -54,15 +60,20 @@ func (s *IncExpService) RegisterIncome(ctx context.Context, req *pb.RegisterInco
 
 func (s *IncExpService) RegisterExpense(ctx context.Context, req *pb.RegisterExpenseRequest) (*pb.RegisterExpenseResponse, error) {
 
-	categoryId, err := uuid.Parse(req.CategoryId)
+	userId, err := helper.ParseUUID(req.UserId)
 	if err != nil {
-		logger.Error("RegisterExpense: Error parsing category ID - ", err)
+		return nil, err
+	}
+
+	categoryId, err := helper.ParseUUID(req.CategoryId)
+	if err != nil {
 		return nil, err
 	}
 
 	logger.Info("RegisterExpense: Category ID parsed - ", categoryId)
 
 	expense := storage.RegisterExpenseParams{
+		UserID:     userId,
 		Type:       "expense",
 		Amount:     req.Amount,
 		Currency:   req.Currency,
@@ -88,13 +99,17 @@ func (s *IncExpService) GetListIncomeVSExpense(ctx context.Context, req *pb.GetL
 
 	logger.Info("GetListIncomeVSExpense: Fetching income vs expense list")
 
+	userId, err := helper.ParseUUID(req.UserId)
+	if err != nil {
+		return nil, err
+	}
 	resp := pb.GetListIncomeVSExpenseResponse{}
-	list, err := s.Queries.GetListIncomeVSExpense(ctx)
+	list, err := s.Queries.GetListIncomeVSExpense(ctx, userId)
 	if err != nil {
 		logger.Error("GetListIncomeVSExpense: Error retrieving income vs expense list - ", err)
 		return nil, err
 	}
-	
+
 	logger.Info("GetListIncomeVSExpense: Successfully retrieved income vs expense list - Count: ", len(list))
 
 	for _, v := range list {

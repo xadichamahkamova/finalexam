@@ -6,7 +6,8 @@ CREATE TABLE categories (
 CREATE TYPE transaction_type AS ENUM ('income', 'expense');
 
 CREATE TABLE transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),  
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
+    user_id UUID NOT NULL, 
     type transaction_type NOT NULL, 
     amount BIGINT NOT NULL, 
     currency VARCHAR(3) NOT NULL, 

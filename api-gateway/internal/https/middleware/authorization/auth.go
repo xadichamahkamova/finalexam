@@ -7,51 +7,73 @@ import (
 
 	t "api-gateway/internal/https/token"
 	"api-gateway/logger"
+	"api-gateway/internal/cache" 
 
 	"github.com/gin-gonic/gin"
 )
 
-func MiddleWare() gin.HandlerFunc {
+type AuthMiddleware struct {
+	Cache *cache.RedisMethod 
+}
 
-    return func(ctx *gin.Context) {
-        token := ctx.GetHeader("Authorization")
-        logger.Info("Authorization header:", token)
-        url := ctx.Request.URL.Path
-        logger.Info("Request URL:", url)
+func (a *AuthMiddleware) MiddleWare() gin.HandlerFunc {
 
-        if strings.Contains(url, "swagger") || url == "/api/v1/users" || url == "/api/v1/users/login" {
-            ctx.Next()
-            return
-        }
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("Authorization")
+		logger.Info("Authorization header:", token)
+		url := ctx.Request.URL.Path
+		logger.Info("Request URL:", url)
 
-        if token == "" {
-            ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-                "error": "Authorization header is missing",
-            })
-            return
-        }
+		if strings.Contains(url, "swagger") || url == "/api/v1/users" || url == "/api/v1/users/login" {
+			ctx.Next()
+			return
+		}
 
-        // Bearer prefix borligini tekshirish
-        if !strings.HasPrefix(token, "Bearer ") {
-            ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-                "error": "Authorization token is missing Bearer prefix",
-            })
-            return
-        }
+		if token == "" {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "Authorization header is missing",
+			})
+			return
+		}
 
-        // Bearer prefix ni ochirish
-        token = strings.TrimPrefix(token, "Bearer ")
+		if !strings.HasPrefix(token, "Bearer ") {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "Authorization token is missing Bearer prefix",
+			})
+			return
+		}
 
-        // Tokenni extract qilish
-        claims, err := t.ExtractClaim(token)
-        if err != nil {
-            ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-                "error": err.Error(),
-            })
-            return
-        }
-        log.Println(claims)
+		token = strings.TrimPrefix(token, "Bearer ")
 
-        ctx.Next()
-    }
+		claims, err := t.ExtractClaim(token)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		log.Println(claims)
+
+		user_id, ok := claims["user_id"].(string)
+		if !ok || user_id == "" {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "ID not found in token",
+			})
+			return
+		}
+
+		err = a.Cache.HoldOnUserID(user_id)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to save user ID to Redis",
+			})
+			return
+		}
+
+		logger.Info("USER ID:", user_id)
+		
+		ctx.Set("user_id", user_id)
+
+		ctx.Next()
+	}
 }

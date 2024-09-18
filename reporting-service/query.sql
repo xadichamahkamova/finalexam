@@ -5,7 +5,9 @@ SELECT
     (COALESCE(SUM(CASE WHEN type = 'income' THEN amount END), 0) -
     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount END), 0))::BIGINT AS net_savings
 FROM
-    transactions;
+    transactions
+WHERE
+    user_id = $1;;
 
 
 -- name: GetReportsSpendingByCategory :many
@@ -16,5 +18,7 @@ FROM
     transactions t
 JOIN
     categories c ON t.category_id = c.id
+WHERE
+    t.user_id = $1
 GROUP BY
     c.name;

@@ -9,10 +9,11 @@ service IncExpService {
 }
 
 message RegisterIncomeRequest {
-    int64 amount = 1;
-    string currency = 2;
-    string category_id = 3;
-    string date = 4;
+    string user_id = 1;  
+    int64 amount = 2;
+    string currency = 3;
+    string category_id = 4;
+    string date = 5;  
 }
 
 message RegisterIncomeResponse {
@@ -21,10 +22,11 @@ message RegisterIncomeResponse {
 }
 
 message RegisterExpenseRequest {
-    int64 amount = 1;
-    string currency = 2;
-    string category_id = 3;
-    string date = 4;
+    string user_id = 1;  
+    int64 amount = 2;
+    string currency = 3;
+    string category_id = 4;
+    string date = 5; 
 }
 
 message RegisterExpenseResponse {
@@ -39,9 +41,11 @@ message IncomeVSExpense {
     string currency = 4;
     string category = 5;
     string date = 6;
-
 }
-message GetListIncomeVSExpenseRequest {}
+
+message GetListIncomeVSExpenseRequest {
+    string user_id = 1; 
+}
 
 message GetListIncomeVSExpenseResponse {
     repeated IncomeVSExpense list = 1;
