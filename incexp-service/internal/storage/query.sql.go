@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const checkBudget = `-- name: CheckBudget :many
+const checkBudget = `-- name: CheckBudget :one
 SELECT 
     b.id AS budget_id,
     b.user_id,
@@ -28,10 +28,15 @@ FROM budgets AS b
 LEFT JOIN transactions AS t
 ON b.category_id = t.category_id 
 AND b.user_id = t.user_id
-AND t.type = 'expense'  
-WHERE b.user_id = $1
+AND t.type = 'expense'
+WHERE b.user_id = $1 AND b.category_id = $2
 GROUP BY b.id, b.user_id, b.category_id, b.amount, b.currency
 `
+
+type CheckBudgetParams struct {
+	UserID     uuid.UUID
+	CategoryID uuid.NullUUID
+}
 
 type CheckBudgetRow struct {
 	BudgetID    uuid.UUID
@@ -43,35 +48,19 @@ type CheckBudgetRow struct {
 	Status      string
 }
 
-func (q *Queries) CheckBudget(ctx context.Context, userID uuid.UUID) ([]CheckBudgetRow, error) {
-	rows, err := q.db.QueryContext(ctx, checkBudget, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CheckBudgetRow
-	for rows.Next() {
-		var i CheckBudgetRow
-		if err := rows.Scan(
-			&i.BudgetID,
-			&i.UserID,
-			&i.CategoryID,
-			&i.BudgetLimit,
-			&i.TotalSpent,
-			&i.Currency,
-			&i.Status,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) CheckBudget(ctx context.Context, arg CheckBudgetParams) (CheckBudgetRow, error) {
+	row := q.db.QueryRowContext(ctx, checkBudget, arg.UserID, arg.CategoryID)
+	var i CheckBudgetRow
+	err := row.Scan(
+		&i.BudgetID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.BudgetLimit,
+		&i.TotalSpent,
+		&i.Currency,
+		&i.Status,
+	)
+	return i, err
 }
 
 const getListIncomeVSExpense = `-- name: GetListIncomeVSExpense :many

@@ -23,7 +23,7 @@ ON t.category_id = c.id
 WHERE t.user_id = $1
 ORDER BY t.date DESC;
 
--- name: CheckBudget :many
+-- name: CheckBudget :one
 SELECT 
     b.id AS budget_id,
     b.user_id,
@@ -39,6 +39,6 @@ FROM budgets AS b
 LEFT JOIN transactions AS t
 ON b.category_id = t.category_id 
 AND b.user_id = t.user_id
-AND t.type = 'expense'  
-WHERE b.user_id = $1
+AND t.type = 'expense'
+WHERE b.user_id = $1 AND b.category_id = $2
 GROUP BY b.id, b.user_id, b.category_id, b.amount, b.currency;

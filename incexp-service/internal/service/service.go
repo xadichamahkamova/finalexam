@@ -89,24 +89,25 @@ func (s *IncExpService) RegisterExpense(ctx context.Context, req *pb.RegisterExp
 		logger.Error("RegisterExpense: Error registering expense - ", err)
 		return nil, err
 	}
+	params := storage.CheckBudgetParams{
+		UserID:     userId,
+		CategoryID: uuid.NullUUID{UUID: categoryId, Valid: true},
+	}
 
-	budgets, err := s.Queries.CheckBudget(ctx, userId)
+	budgets, err := s.Queries.CheckBudget(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, budget := range budgets {
-		if budget.Status == "Over Budget" {
-			message := fmt.Sprintf("User %s has exceeded the budget for category %v. Spent: %.2f, Budget: %d",
-				req.UserEmail, budget.CategoryID, budget.TotalSpent, budget.BudgetLimit)
-
-			err = s.Producer.ProduceMessage(req.UserEmail, []byte(message))
-			if err != nil {
-				logger.Error("RegisterExpense: Error sending message to Kafka - ", err)
-				return nil, err
-			}
-			logger.Info("RegisterExpense: Over budget message sent to Kafka for user - ", userId)
+	if budgets.Status == "Over Budget" {
+		message := fmt.Sprintf("User %s has exceeded the budget for category %v. Spent: %.2f, Budget: %d",
+			req.UserEmail, budgets.CategoryID, budgets.TotalSpent, budgets.BudgetLimit)
+		err = s.Producer.ProduceMessage(req.UserEmail, []byte(message))
+		if err != nil {
+			logger.Error("RegisterExpense: Error sending message to Kafka - ", err)
+			return nil, err
 		}
+		logger.Info("RegisterExpense: Over budget message sent to Kafka for user - ", userId)
 	}
 
 	resp := pb.RegisterExpenseResponse{
