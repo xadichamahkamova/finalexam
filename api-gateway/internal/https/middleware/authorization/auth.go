@@ -62,6 +62,15 @@ func (a *AuthMiddleware) MiddleWare() gin.HandlerFunc {
 			return
 		}
 
+		user_email, ok := claims["user_email"].(string)
+		if !ok || user_id == "" {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "ID not found in token",
+			})
+			return
+		}
+
+	
 		err = a.Cache.HoldOnUserID(user_id)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -70,10 +79,11 @@ func (a *AuthMiddleware) MiddleWare() gin.HandlerFunc {
 			return
 		}
 
-		logger.Info("USER ID:", user_id)
+		logger.Info("USER ID:", user_id, "USER EMAIL: ", user_email)
 		
 		ctx.Set("user_id", user_id)
-
+		ctx.Set("user_email", user_email)
+		
 		ctx.Next()
 	}
 }

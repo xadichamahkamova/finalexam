@@ -3,8 +3,13 @@ service:
   port: 8002
 
 postgres:
-  host: localhost
+  host: postgres
   port: 5432
   user: postgres
   password: 1
   database: postgres 
+
+kafka:
+  host: broker
+  port: 9092
+  topic: budgets

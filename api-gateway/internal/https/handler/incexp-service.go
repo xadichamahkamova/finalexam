@@ -71,6 +71,13 @@ func (h *HandlerST) RegisterExpense(c *gin.Context) {
 	}
 	req.UserId = id.(string)
 
+	email, exists := c.Get("user_email")
+	if !exists {
+		c.JSON(500, gin.H{"error": "can't get user email"})
+		return
+	}
+	req.UserEmail = email.(string)
+
 	resp, err := h.Service.RegisterExpense(ctx, &req)
 	if err != nil {
 		logger.Error("RegisterExpense: Service error - ", err)

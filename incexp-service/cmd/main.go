@@ -12,6 +12,7 @@ import (
 	service "incexp-service/internal/service"
 	"incexp-service/logger"
 	router "incexp-service/internal/pkg/register-service"
+	producer "incexp-service/internal/kafka/producer"
 )
 
 func main() {
@@ -30,8 +31,15 @@ func main() {
 	}
 	logger.Info("Connected to Postgresql")
 
+	writer, err := producer.NewProducerInit(cfg)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Info("Producer started succesfully")
+	defer writer.Close()
+
 	repo := pq.NewIncExpRepository(db)
-	srv := service.NewIncExpService(repo)
+	srv := service.NewIncExpService(repo, *writer)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

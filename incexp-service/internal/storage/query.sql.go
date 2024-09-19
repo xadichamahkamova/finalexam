@@ -12,6 +12,68 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkBudget = `-- name: CheckBudget :many
+SELECT 
+    b.id AS budget_id,
+    b.user_id,
+    b.category_id,
+    b.amount AS budget_limit,
+    COALESCE(SUM(t.amount), 0) AS total_spent,  
+    b.currency,
+    CASE 
+        WHEN COALESCE(SUM(t.amount), 0) > b.amount THEN 'Over Budget'
+        ELSE 'Within Budget'
+    END AS status
+FROM budgets AS b
+LEFT JOIN transactions AS t
+ON b.category_id = t.category_id 
+AND b.user_id = t.user_id
+AND t.type = 'expense'  
+WHERE b.user_id = $1
+GROUP BY b.id, b.user_id, b.category_id, b.amount, b.currency
+`
+
+type CheckBudgetRow struct {
+	BudgetID    uuid.UUID
+	UserID      uuid.UUID
+	CategoryID  uuid.NullUUID
+	BudgetLimit int64
+	TotalSpent  interface{}
+	Currency    string
+	Status      string
+}
+
+func (q *Queries) CheckBudget(ctx context.Context, userID uuid.UUID) ([]CheckBudgetRow, error) {
+	rows, err := q.db.QueryContext(ctx, checkBudget, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CheckBudgetRow
+	for rows.Next() {
+		var i CheckBudgetRow
+		if err := rows.Scan(
+			&i.BudgetID,
+			&i.UserID,
+			&i.CategoryID,
+			&i.BudgetLimit,
+			&i.TotalSpent,
+			&i.Currency,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getListIncomeVSExpense = `-- name: GetListIncomeVSExpense :many
 SELECT 
     t.id, 
