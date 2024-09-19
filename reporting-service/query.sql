@@ -20,5 +20,6 @@ JOIN
     categories c ON t.category_id = c.id
 WHERE
     t.user_id = $1
+    AND t.type = 'expense' 
 GROUP BY
     c.name;

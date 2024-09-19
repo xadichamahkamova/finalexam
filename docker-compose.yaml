@@ -1,0 +1,116 @@
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  kafka:
+    image: apache/kafka:latest
+    hostname: broker
+    container_name: broker
+    ports:
+      - 9093:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
+      KAFKA_LISTENERS: PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+
+  redis:
+    container_name: redis
+    image: redis:7.2.5-alpine
+    restart: always
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+ 
+  api_gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      - user_service
+      - reporting_service
+      - notification_service
+      - incexp_service
+      - budget_service
+      - redis
+
+  user_service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user_service
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+
+  reporting_service:
+    build:
+      context: ./reporting-service
+      dockerfile: Dockerfile
+    container_name: reporting_service
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+
+  incexp_service:
+    build:
+      context: ./incexp-service
+      dockerfile: Dockerfile
+    container_name: incexp_service
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - kafka
+
+  notification_service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification_service
+    ports:
+      - "8005:8005"
+    depends_on:
+      - kafka
+
+  budget_service:
+    build:
+      context: ./budget-service
+      dockerfile: Dockerfile
+    container_name: budget_service
+    ports:
+      - "8004:8004"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

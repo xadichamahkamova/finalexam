@@ -7,12 +7,9 @@ type ServiceConfig struct {
 	Port string
 }
 
-type PostgresConfig struct {
-	Host     string
-	Port     string
-	User     string
+type EmailConfig struct {
+	From     string
 	Password string
-	Database string
 }
 
 type KafkaConfig struct {
@@ -22,9 +19,11 @@ type KafkaConfig struct {
 }
 
 type Config struct {
-	Postgres PostgresConfig
 	Service  ServiceConfig
 	Kafka    KafkaConfig
+	Email    EmailConfig
+	CertFile string
+	KeyFile  string
 }
 
 func Load(path string) (*Config, error) {
@@ -43,20 +42,19 @@ func Load(path string) (*Config, error) {
 			Port: viper.GetString("service.port"),
 		},
 
-		Postgres: PostgresConfig{
-			Host:     viper.GetString("postgres.host"),
-			Port:     viper.GetString("postgres.port"),
-			User:     viper.GetString("postgres.user"),
-			Password: viper.GetString("postgres.password"),
-			Database: viper.GetString("postgres.database"),
-		},
-		
 		Kafka: KafkaConfig{
 			Host:  viper.GetString("kafka.host"),
 			Port:  viper.GetString("kafka.port"),
 			Topic: viper.GetString("kafka.topic"),
 		},
-		
+
+		Email: EmailConfig{
+			From:     viper.GetString("email.from"),
+			Password: viper.GetString("email.password"),
+		},
+
+		CertFile: viper.GetString("file.cert"),
+		KeyFile:  viper.GetString("file.key"),
 	}
 	return &cfg, nil
 }

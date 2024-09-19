@@ -1,0 +1,17 @@
+FROM golang:1.22.6-alpine3.20 AS builder
+
+RUN mkdir app
+
+COPY . /app
+
+WORKDIR /app
+
+RUN go build -o budget_service ./cmd/main.go
+
+FROM alpine:3.20
+
+WORKDIR /app
+
+COPY --from=builder /app .
+
+CMD ["/app/budget_service"]

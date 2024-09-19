@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	pb "incexp-service/genproto/incexpb"
+	producer "incexp-service/internal/kafka/producer"
 	"incexp-service/internal/service/helper"
 	"incexp-service/internal/storage"
 	"incexp-service/logger"
@@ -12,12 +14,14 @@ import (
 
 type IncExpService struct {
 	pb.UnimplementedIncExpServiceServer
-	Queries *storage.Queries
+	Queries  *storage.Queries
+	Producer producer.ProducerInit
 }
 
-func NewIncExpService(repo *storage.Queries) *IncExpService {
+func NewIncExpService(repo *storage.Queries, producer producer.ProducerInit) *IncExpService {
 	return &IncExpService{
-		Queries: repo,
+		Queries:  repo,
+		Producer: producer,
 	}
 }
 
@@ -84,6 +88,25 @@ func (s *IncExpService) RegisterExpense(ctx context.Context, req *pb.RegisterExp
 	if err != nil {
 		logger.Error("RegisterExpense: Error registering expense - ", err)
 		return nil, err
+	}
+
+	budgets, err := s.Queries.CheckBudget(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, budget := range budgets {
+		if budget.Status == "Over Budget" {
+			message := fmt.Sprintf("User %s has exceeded the budget for category %v. Spent: %.2f, Budget: %d",
+				req.UserEmail, budget.CategoryID, budget.TotalSpent, budget.BudgetLimit)
+
+			err = s.Producer.ProduceMessage(req.UserEmail, []byte(message))
+			if err != nil {
+				logger.Error("RegisterExpense: Error sending message to Kafka - ", err)
+				return nil, err
+			}
+			logger.Info("RegisterExpense: Over budget message sent to Kafka for user - ", userId)
+		}
 	}
 
 	resp := pb.RegisterExpenseResponse{
